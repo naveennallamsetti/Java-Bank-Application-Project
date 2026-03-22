@@ -6,11 +6,11 @@ pipeline {
         GIT_REPO   = "https://github.com/mehar-pa-45/Java-Bank-Application-Project.git"
         GIT_BRANCH = "main"
 
-        DOCKERHUB_USER = "mehardocker45"
+        DOCKERHUB_USER = "naveennallamsetti"
         IMAGE_NAME     = "java-bank-application-project"
         IMAGE_TAG      = "${BUILD_NUMBER}"
 
-        DOCKER_CREDS   = "Docker_CRED"
+        DOCKER_CREDS   = "naveendocker"
 
         CONTAINER_NAME = "Bank-Application-container"
         HOST_PORT      = "8081"
@@ -21,7 +21,7 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[credentialsId: 'Github-Cred', url: 'https://github.com/mehar-pa-45/Java-Bank-Application-Project.git']])
+                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[credentialsId: 'naveengit', url: 'https://github.com/naveennallamsetti/Java-Bank-Application-Project.git']])
                            }
         }
 
