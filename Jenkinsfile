@@ -3,7 +3,7 @@ pipeline {
 
     environment {
 
-        GIT_REPO   = "https://github.com/mehar-pa-45/Java-Bank-Application-Project.git"
+        GIT_REPO   = "https://github.com/naveennallamsetti/Java-Bank-Application-Project.git"
         GIT_BRANCH = "main"
 
         DOCKERHUB_USER = "naveennallamsetti"
