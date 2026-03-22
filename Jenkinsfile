@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-
         GIT_REPO   = "https://github.com/naveennallamsetti/Java-Bank-Application-Project.git"
         GIT_BRANCH = "main"
 
@@ -12,7 +11,7 @@ pipeline {
 
         DOCKER_CREDS   = "naveendocker"
 
-        CONTAINER_NAME = "Bank-Application-container"
+        CONTAINER_NAME = "bank-app-container"
         HOST_PORT      = "8081"
         CONTAINER_PORT = "8080"
     }
@@ -21,14 +20,17 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[credentialsId: 'naveengit', url: 'https://github.com/naveennallamsetti/Java-Bank-Application-Project.git']])
-                           }
+                git branch: "${GIT_BRANCH}",
+                    credentialsId: 'naveengit',
+                    url: "${GIT_REPO}"
+            }
         }
 
         stage('Build Docker Image') {
             steps {
                 sh """
                 docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} .
+                docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:latest .
                 """
             }
         }
@@ -40,7 +42,6 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-
                     sh """
                     echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
                     """
@@ -52,11 +53,12 @@ pipeline {
             steps {
                 sh """
                 docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
                 """
             }
         }
 
-        stage('Deploy Container') {
+        stage('Deploy Container (Optional Local Test)') {
             steps {
                 sh """
                 docker stop ${CONTAINER_NAME} || true
@@ -66,6 +68,16 @@ pipeline {
                 -p ${HOST_PORT}:${CONTAINER_PORT} \
                 --name ${CONTAINER_NAME} \
                 ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                """
+            }
+        }
+
+        // ✅ OPTIONAL: Deploy to Kubernetes (EKS)
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh """
+                kubectl set image deployment/java-bank-app \
+                java-bank-container=${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
                 """
             }
         }
