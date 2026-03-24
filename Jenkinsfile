@@ -161,14 +161,23 @@ pipeline {
             }
         }
 
+        // stage('Update K8s Image') {
+        //     steps {
+        //         dir("${WORK_DIR}") {
+        //             sh '''
+        //                 sed -i "s|image:.*|image: ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}|" money.yml
+        //             '''
+        //         }
+        //     }
         stage('Update K8s Image') {
-            steps {
-                dir("${WORK_DIR}") {
-                    sh '''
-                        sed -i "s|image:.*|image: ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}|" money.yml
-                    '''
-                }
-            }
+    steps {
+        sh """
+            kubectl set image deployment/java-bank-app \
+            java-bank-container=${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} \
+            --record
+        """
+    }
+}
             post {
                 success {
                     emailext(
