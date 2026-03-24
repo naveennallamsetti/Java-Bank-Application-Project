@@ -71,15 +71,29 @@ pipeline {
                 """
             }
         }
+        stage('Deploy to Kubernetes') {
+    steps {
+        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+            sh '''
+            export KUBECONFIG=$KUBECONFIG
+
+            kubectl get nodes
+
+            kubectl set image deployment/java-bank-app \
+            java-bank-container=''' + "${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}" + '''
+            '''
+        }
+    }
+}
 
         // ✅ OPTIONAL: Deploy to Kubernetes (EKS)
-        stage('Deploy to Kubernetes') {
-            steps {
-                sh """
-                kubectl set image deployment/java-bank-app \
-                java-bank-container=${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                """
-            }
-        }
+        // stage('Deploy to Kubernetes') {
+        //     steps {
+        //         sh """
+        //         kubectl set image deployment/java-bank-app \
+        //         java-bank-container=${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+        //         """
+        //     }
+        // }
     }
 }
