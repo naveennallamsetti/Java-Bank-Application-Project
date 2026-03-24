@@ -42,7 +42,7 @@ spec:
     - host: "java-bank-app.example.com"   # use a real or test DNS
       http:
         paths:
-          - path: /
+          - path: /bank
             pathType: Prefix
             backend:
               service:
