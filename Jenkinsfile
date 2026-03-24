@@ -19,6 +19,7 @@ pipeline {
         CONTAINER_NAME = "bank-app-container"
         HOST_PORT      = "8081"
         CONTAINER_PORT = "8080"
+         NOTIFY_EMAIL = "naveennallametti60@gmail.com"
     }
 
     stages {
@@ -142,5 +143,28 @@ pipeline {
         failure {
             echo "❌ FAILED"
         }
+        post {
+        success {
+            emailext(
+                subject: "Build & Deploy Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    <p>Good news!</p>
+                    <p>Build and deployment were successful.</p>
+                    <p><b>Job:</b> ${env.JOB_NAME}</p>
+                    <p><b>Build Number:</b> ${env.BUILD_NUMBER}</p>
+                    <p><b>URL:</b> ${env.BUILD_URL}</p>
+                """,
+                to: "${NOTIFY_EMAIL}",
+                mimeType: 'text/html'
+            )
+        }
+        failure {
+            emailext(
+                subject: "Build & Deploy Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Build or deployment failed. Check details at ${env.BUILD_URL}",
+                to: "${NOTIFY_EMAIL}"
+            )
+        }
+    }
     }
 }
