@@ -43,7 +43,7 @@ spec:
   rules:
     - http:
         paths:
-          - path: /
+          - path: /bank
             pathType: Prefix
             backend:
               service:
