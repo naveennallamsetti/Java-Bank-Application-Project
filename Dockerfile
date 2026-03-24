@@ -16,6 +16,6 @@ RUN rm -rf /usr/local/tomcat/webapps/*
 
 COPY --from=builder /app/target/java-Bank-Application-Project.war /usr/local/tomcat/webapps/ROOT.war
 
-EXPOSE 8085
+EXPOSE 8080
 
 CMD ["catalina.sh", "run"]
