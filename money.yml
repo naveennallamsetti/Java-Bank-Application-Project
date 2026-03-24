@@ -36,12 +36,11 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: java-bank-ingress
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
+  ingressClassName: nginx   # updated from deprecated annotation
   rules:
-    - http:
+    - host: java-bank-app.local   # unique host to avoid conflicts
+      http:
         paths:
           - path: /
             pathType: Prefix
