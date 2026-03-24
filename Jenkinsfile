@@ -2,6 +2,8 @@ pipeline {
     agent any
 
     environment {
+        WORK_DIR = "/var/lib/jenkins/workspace/bankapp"
+
         GIT_REPO   = "https://github.com/naveennallamsetti/Java-Bank-Application-Project.git"
         GIT_BRANCH = "main"
 
@@ -10,6 +12,9 @@ pipeline {
         IMAGE_TAG      = "${BUILD_NUMBER}"
 
         DOCKER_CREDS   = "naveendocker"
+
+        AWS_REGION = "us-east-1"
+        EKS_CLUSTER = "for-tasks"
 
         CONTAINER_NAME = "bank-app-container"
         HOST_PORT      = "8081"
@@ -20,18 +25,24 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                git branch: "${GIT_BRANCH}",
-                    credentialsId: 'naveengit',
-                    url: "${GIT_REPO}"
+                dir("${WORK_DIR}") {
+                    git branch: "${GIT_BRANCH}",
+                        credentialsId: 'naveengit',
+                        url: "${GIT_REPO}"
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh """
-                docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} .
-                docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:latest .
-                """
+                dir("${WORK_DIR}") {
+                    sh '''
+                        docker rmi -f ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} || true
+
+                        docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} .
+                        docker tag ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
+                    '''
+                }
             }
         }
 
@@ -42,58 +53,93 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh """
-                    echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
-                    """
+                    sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    '''
                 }
             }
         }
 
         stage('Push Image to DockerHub') {
             steps {
-                sh """
-                docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
-                """
+                sh '''
+                    docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                    docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
+                '''
             }
         }
 
-        stage('Deploy Container (Optional Local Test)') {
+        // ✅ Optional Local Test
+        stage('Deploy Container (Local Test)') {
             steps {
-                sh """
-                docker stop ${CONTAINER_NAME} || true
-                docker rm ${CONTAINER_NAME} || true
+                sh '''
+                    docker stop ${CONTAINER_NAME} || true
+                    docker rm ${CONTAINER_NAME} || true
 
-                docker run -d \
-                -p ${HOST_PORT}:${CONTAINER_PORT} \
-                --name ${CONTAINER_NAME} \
-                ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                """
+                    docker run -d -p ${HOST_PORT}:${CONTAINER_PORT} \
+                    --name ${CONTAINER_NAME} \
+                    ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                '''
             }
         }
+
+        // ✅ Update image in YAML
+        stage('Update K8s Image') {
+            steps {
+                dir("${WORK_DIR}") {
+                    sh '''
+                        sed -i "s|image:.*|image: ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}|" k8s/deployment.yml
+                    '''
+                }
+            }
+        }
+
+        // 🔥 EKS LOGIN (No credentials block needed)
+        stage('Configure EKS Access') {
+            steps {
+                sh '''
+                    export PATH=$PATH:/usr/local/bin
+
+                    echo "Connecting to EKS cluster..."
+
+                    aws eks --region $AWS_REGION update-kubeconfig --name $EKS_CLUSTER
+
+                    kubectl config current-context
+                    kubectl get nodes
+                '''
+            }
+        }
+
+        // 🚀 Deploy
         stage('Deploy to Kubernetes') {
-    steps {
-        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-            sh '''
-            export KUBECONFIG=$KUBECONFIG
+            steps {
+                dir("${WORK_DIR}") {
+                    sh '''
+                        kubectl apply -f k8s/deployment.yml
+                        kubectl apply -f k8s/service.yml
+                    '''
+                }
+            }
+        }
 
-            kubectl get nodes
-
-            kubectl set image deployment/java-bank-app \
-            java-bank-container=''' + "${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}" + '''
-            '''
+        // ✅ Verify
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                    kubectl rollout status deployment/java-bank-app || true
+                    kubectl get pods -o wide
+                    kubectl get svc
+                '''
+            }
         }
     }
-}
 
-        // ✅ OPTIONAL: Deploy to Kubernetes (EKS)
-        // stage('Deploy to Kubernetes') {
-        //     steps {
-        //         sh """
-        //         kubectl set image deployment/java-bank-app \
-        //         java-bank-container=${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-        //         """
-        //     }
-        // }
+    post {
+        success {
+            echo "✅ SUCCESS: ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+        }
+        failure {
+            echo "❌ FAILED"
+        }
     }
 }
