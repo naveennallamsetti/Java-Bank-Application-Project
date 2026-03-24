@@ -89,7 +89,7 @@ pipeline {
             steps {
                 dir("${WORK_DIR}") {
                     sh '''
-                        sed -i "s|naveennallamsetti/java-bank-application-project:.*|${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}|" k8s/deployment.yml
+                        sed -i "s|naveennallamsetti/java-bank-application-project:.*|${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}|" money.yml
                     '''
                 }
             }
