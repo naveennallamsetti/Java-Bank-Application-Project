@@ -16,10 +16,9 @@ spec:
         - name: java-bank-container
           image: naveennallamsetti/java-bank-application-project:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 8080   # Match your Dockerfile EXPOSE port
 
 ---
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -30,14 +29,15 @@ spec:
     app: java-bank-app
   ports:
     - port: 80
-      targetPort: 8080
+      targetPort: 8080  # Match your containerPort
 
 ---
-
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: java-bank-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /   # Rewrite /bank -> /
 spec:
   ingressClassName: nginx
   rules:
