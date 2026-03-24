@@ -16,7 +16,7 @@ spec:
         - name: java-bank-container
           image: naveennallamsetti/java-bank-application-project:latest
           ports:
-            - containerPort: 8080   # Match your Dockerfile EXPOSE port
+            - containerPort: 8085   # Matches your Dockerfile
 
 ---
 apiVersion: v1
@@ -29,7 +29,7 @@ spec:
     app: java-bank-app
   ports:
     - port: 80
-      targetPort: 8080  # Match your containerPort
+      targetPort: 8085  # Matches containerPort
 
 ---
 apiVersion: networking.k8s.io/v1
