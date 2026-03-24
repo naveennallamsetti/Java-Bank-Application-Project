@@ -19,7 +19,7 @@ pipeline {
         CONTAINER_NAME = "bank-app-container"
         HOST_PORT      = "8081"
         CONTAINER_PORT = "8080"
-         NOTIFY_EMAIL = "naveennallametti60@gmail.com"
+        NOTIFY_EMAIL = "naveennallametti60@gmail.com"
     }
 
     stages {
@@ -40,7 +40,6 @@ pipeline {
                 dir("${WORK_DIR}") {
                     sh '''
                         docker rmi -f ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} || true
-
                         docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} .
                         docker tag ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
                     '''
@@ -71,7 +70,6 @@ pipeline {
             }
         }
 
-        // ✅ Optional local test
         stage('Deploy Container (Local Test)') {
             steps {
                 sh '''
@@ -85,7 +83,6 @@ pipeline {
             }
         }
 
-        // ✅ Update YAML image
         stage('Update K8s Image') {
             steps {
                 dir("${WORK_DIR}") {
@@ -96,7 +93,6 @@ pipeline {
             }
         }
 
-        // ✅ Connect to EKS
         stage('Configure EKS Access') {
             steps {
                 sh '''
@@ -112,7 +108,6 @@ pipeline {
             }
         }
 
-        // ✅ Deploy
         stage('Deploy to Kubernetes') {
             steps {
                 dir("${WORK_DIR}") {
@@ -123,7 +118,6 @@ pipeline {
             }
         }
 
-        // ✅ Verify
         stage('Verify Deployment') {
             steps {
                 sh '''
@@ -139,12 +133,6 @@ pipeline {
     post {
         success {
             echo "✅ SUCCESS: ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-        }
-        failure {
-            echo "❌ FAILED"
-        }
-        post {
-        success {
             emailext(
                 subject: "Build & Deploy Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """
@@ -152,19 +140,25 @@ pipeline {
                     <p>Build and deployment were successful.</p>
                     <p><b>Job:</b> ${env.JOB_NAME}</p>
                     <p><b>Build Number:</b> ${env.BUILD_NUMBER}</p>
-                    <p><b>URL:</b> ${env.BUILD_URL}</p>
+                    <p><b>URL:</b> <a href='${env.BUILD_URL}'>${env.BUILD_URL}</a></p>
                 """,
                 to: "${NOTIFY_EMAIL}",
                 mimeType: 'text/html'
             )
         }
         failure {
+            echo "❌ FAILED"
             emailext(
                 subject: "Build & Deploy Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "Build or deployment failed. Check details at ${env.BUILD_URL}",
-                to: "${NOTIFY_EMAIL}"
+                body: """
+                    <p>Build or deployment failed.</p>
+                    <p><b>Job:</b> ${env.JOB_NAME}</p>
+                    <p><b>Build Number:</b> ${env.BUILD_NUMBER}</p>
+                    <p><b>URL:</b> <a href='${env.BUILD_URL}'>${env.BUILD_URL}</a></p>
+                """,
+                to: "${NOTIFY_EMAIL}",
+                mimeType: 'text/html'
             )
         }
-    }
     }
 }
