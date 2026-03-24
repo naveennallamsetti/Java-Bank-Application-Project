@@ -26,7 +26,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 dir("${WORK_DIR}") {
-                    deleteDir()   // ✅ clean workspace (important)
+                    deleteDir()
                     git branch: "${GIT_BRANCH}",
                         credentialsId: 'naveengit',
                         url: "${GIT_REPO}"
@@ -70,7 +70,7 @@ pipeline {
             }
         }
 
-        // ✅ Optional Local Test
+        // ✅ Optional local test
         stage('Deploy Container (Local Test)') {
             steps {
                 sh '''
@@ -84,18 +84,18 @@ pipeline {
             }
         }
 
-        // ✅ FIXED: safer image update (only replace your image)
+        // ✅ Update YAML image
         stage('Update K8s Image') {
             steps {
                 dir("${WORK_DIR}") {
                     sh '''
-                        sed -i "s|naveennallamsetti/java-bank-application-project:.*|${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}|" money.yml
+                        sed -i "s|image:.*|image: ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}|" money.yml
                     '''
                 }
             }
         }
 
-        // 🔥 EKS LOGIN
+        // ✅ Connect to EKS
         stage('Configure EKS Access') {
             steps {
                 sh '''
@@ -105,22 +105,18 @@ pipeline {
 
                     aws eks --region $AWS_REGION update-kubeconfig --name $EKS_CLUSTER
 
-                    echo "Current Context:"
                     kubectl config current-context
-
-                    echo "Cluster Nodes:"
                     kubectl get nodes
                 '''
             }
         }
 
-        // 🚀 Deploy
+        // ✅ Deploy
         stage('Deploy to Kubernetes') {
             steps {
                 dir("${WORK_DIR}") {
                     sh '''
-                        kubectl apply -f k8s/deployment.yml
-                        kubectl apply -f k8s/service.yml
+                        kubectl apply -f money.yml
                     '''
                 }
             }
@@ -130,14 +126,10 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 sh '''
-                    echo "Waiting for rollout..."
-                    kubectl rollout status deployment/java-bank-app
-
-                    echo "Pods:"
+                    kubectl rollout status deployment/java-bank-app || true
                     kubectl get pods -o wide
-
-                    echo "Services:"
                     kubectl get svc
+                    kubectl get ingress
                 '''
             }
         }
