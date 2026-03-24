@@ -24,7 +24,7 @@ kind: Service
 metadata:
   name: java-bank-service
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app: java-bank-app
   ports:
