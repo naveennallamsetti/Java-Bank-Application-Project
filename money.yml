@@ -16,7 +16,7 @@ spec:
         - name: java-bank-container
           image: naveennallamsetti/java-bank-application-project:latest
           ports:
-            - containerPort: 8080   # Match the Dockerfile
+            - containerPort: 8085  # Match the Dockerfile
 
 ---
 apiVersion: v1
@@ -24,30 +24,30 @@ kind: Service
 metadata:
   name: java-bank-service
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: java-bank-app
   ports:
     - port: 80
-      targetPort: 8080        # Match container port
+      targetPort: 8085        # Match container port
 
-# ---
-# apiVersion: networking.k8s.io/v1
-# kind: Ingress
-# metadata:
-#   name: java-bank-ingress
-#   annotations:
-#     nginx.ingress.kubernetes.io/rewrite-target: /
-# spec:
-#   ingressClassName: nginx
-#   rules:
-#     - host: a8493ae8dc58a48b49f2a44ec81ce233-661166032.us-east-1.elb.amazonaws.com
-#       http:
-#         paths:
-#           - path: /
-#             pathType: Prefix
-#             backend:
-#               service:
-#                 name: java-bank-service
-#                 port:
-#                   number: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: java-bank-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: a8493ae8dc58a48b49f2a44ec81ce233-661166032.us-east-1.elb.amazonaws.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: java-bank-service
+                port:
+                  number: 80
