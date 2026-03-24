@@ -39,7 +39,6 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: "java-bank-app.example.com"   # use a real or test DNS
       http:
         paths:
           - path: /bank
