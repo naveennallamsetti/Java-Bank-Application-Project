@@ -26,6 +26,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 dir("${WORK_DIR}") {
+                    deleteDir()   // ✅ clean workspace (important)
                     git branch: "${GIT_BRANCH}",
                         credentialsId: 'naveengit',
                         url: "${GIT_REPO}"
@@ -83,18 +84,18 @@ pipeline {
             }
         }
 
-        // ✅ Update image in YAML
+        // ✅ FIXED: safer image update (only replace your image)
         stage('Update K8s Image') {
             steps {
                 dir("${WORK_DIR}") {
                     sh '''
-                        sed -i "s|image:.*|image: ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}|" k8s/deployment.yml
+                        sed -i "s|naveennallamsetti/java-bank-application-project:.*|${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}|" k8s/deployment.yml
                     '''
                 }
             }
         }
 
-        // 🔥 EKS LOGIN (No credentials block needed)
+        // 🔥 EKS LOGIN
         stage('Configure EKS Access') {
             steps {
                 sh '''
@@ -104,7 +105,10 @@ pipeline {
 
                     aws eks --region $AWS_REGION update-kubeconfig --name $EKS_CLUSTER
 
+                    echo "Current Context:"
                     kubectl config current-context
+
+                    echo "Cluster Nodes:"
                     kubectl get nodes
                 '''
             }
@@ -126,8 +130,13 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 sh '''
-                    kubectl rollout status deployment/java-bank-app || true
+                    echo "Waiting for rollout..."
+                    kubectl rollout status deployment/java-bank-app
+
+                    echo "Pods:"
                     kubectl get pods -o wide
+
+                    echo "Services:"
                     kubectl get svc
                 '''
             }
