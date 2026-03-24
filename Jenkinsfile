@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         WORK_DIR = "/var/lib/jenkins/workspace/bankapp"
-
         GIT_REPO   = "https://github.com/naveennallamsetti/Java-Bank-Application-Project.git"
         GIT_BRANCH = "main"
 
@@ -23,7 +22,6 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout Code') {
             steps {
                 dir("${WORK_DIR}") {
@@ -31,6 +29,22 @@ pipeline {
                     git branch: "${GIT_BRANCH}",
                         credentialsId: 'naveengit',
                         url: "${GIT_REPO}"
+                }
+            }
+            post {
+                success {
+                    emailext(
+                        subject: "✅ Checkout Successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Checkout of repository ${GIT_REPO} succeeded.",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
+                failure {
+                    emailext(
+                        subject: "❌ Checkout Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Checkout of repository ${GIT_REPO} failed. Check build URL: ${env.BUILD_URL}",
+                        to: "${NOTIFY_EMAIL}"
+                    )
                 }
             }
         }
@@ -43,6 +57,22 @@ pipeline {
                         docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} .
                         docker tag ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
                     '''
+                }
+            }
+            post {
+                success {
+                    emailext(
+                        subject: "✅ Docker Build Successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Docker image ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} built successfully.",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
+                failure {
+                    emailext(
+                        subject: "❌ Docker Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Docker build failed. Check build URL: ${env.BUILD_URL}",
+                        to: "${NOTIFY_EMAIL}"
+                    )
                 }
             }
         }
@@ -59,6 +89,22 @@ pipeline {
                     '''
                 }
             }
+            post {
+                success {
+                    emailext(
+                        subject: "✅ DockerHub Login Successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Logged in to DockerHub successfully.",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
+                failure {
+                    emailext(
+                        subject: "❌ DockerHub Login Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "DockerHub login failed. Check build URL: ${env.BUILD_URL}",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
+            }
         }
 
         stage('Push Image to DockerHub') {
@@ -67,6 +113,22 @@ pipeline {
                     docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
                     docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
                 '''
+            }
+            post {
+                success {
+                    emailext(
+                        subject: "✅ Docker Push Successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Docker image pushed to DockerHub successfully.",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
+                failure {
+                    emailext(
+                        subject: "❌ Docker Push Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Docker push failed. Check build URL: ${env.BUILD_URL}",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
             }
         }
 
@@ -81,6 +143,22 @@ pipeline {
                     ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
+            post {
+                success {
+                    emailext(
+                        subject: "✅ Local Container Deploy Successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Docker container deployed locally successfully.",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
+                failure {
+                    emailext(
+                        subject: "❌ Local Container Deploy Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Local container deployment failed. Check build URL: ${env.BUILD_URL}",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
+            }
         }
 
         stage('Update K8s Image') {
@@ -91,20 +169,48 @@ pipeline {
                     '''
                 }
             }
+            post {
+                success {
+                    emailext(
+                        subject: "✅ K8s YAML Updated: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Kubernetes deployment YAML updated successfully.",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
+                failure {
+                    emailext(
+                        subject: "❌ K8s YAML Update Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Failed to update Kubernetes YAML. Check build URL: ${env.BUILD_URL}",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
+            }
         }
 
         stage('Configure EKS Access') {
             steps {
                 sh '''
                     export PATH=$PATH:/usr/local/bin
-
-                    echo "Connecting to EKS cluster..."
-
                     aws eks --region $AWS_REGION update-kubeconfig --name $EKS_CLUSTER
-
                     kubectl config current-context
                     kubectl get nodes
                 '''
+            }
+            post {
+                success {
+                    emailext(
+                        subject: "✅ EKS Configured Successfully: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Connected to EKS cluster successfully.",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
+                failure {
+                    emailext(
+                        subject: "❌ EKS Configuration Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Failed to connect to EKS cluster. Check build URL: ${env.BUILD_URL}",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
             }
         }
 
@@ -114,6 +220,22 @@ pipeline {
                     sh '''
                         kubectl apply -f money.yml
                     '''
+                }
+            }
+            post {
+                success {
+                    emailext(
+                        subject: "✅ K8s Deployment Successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Application deployed to Kubernetes successfully.",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
+                failure {
+                    emailext(
+                        subject: "❌ K8s Deployment Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Kubernetes deployment failed. Check build URL: ${env.BUILD_URL}",
+                        to: "${NOTIFY_EMAIL}"
+                    )
                 }
             }
         }
@@ -127,38 +249,22 @@ pipeline {
                     kubectl get ingress
                 '''
             }
-        }
-    }
-
-    post {
-        success {
-            echo "✅ SUCCESS: ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-            emailext(
-                subject: "Build & Deploy Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-                    <p>Good news!</p>
-                    <p>Build and deployment were successful.</p>
-                    <p><b>Job:</b> ${env.JOB_NAME}</p>
-                    <p><b>Build Number:</b> ${env.BUILD_NUMBER}</p>
-                    <p><b>URL:</b> <a href='${env.BUILD_URL}'>${env.BUILD_URL}</a></p>
-                """,
-                to: "${NOTIFY_EMAIL}",
-                mimeType: 'text/html'
-            )
-        }
-        failure {
-            echo "❌ FAILED"
-            emailext(
-                subject: "Build & Deploy Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-                    <p>Build or deployment failed.</p>
-                    <p><b>Job:</b> ${env.JOB_NAME}</p>
-                    <p><b>Build Number:</b> ${env.BUILD_NUMBER}</p>
-                    <p><b>URL:</b> <a href='${env.BUILD_URL}'>${env.BUILD_URL}</a></p>
-                """,
-                to: "${NOTIFY_EMAIL}",
-                mimeType: 'text/html'
-            )
+            post {
+                success {
+                    emailext(
+                        subject: "✅ Deployment Verified: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Deployment verification completed successfully.",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
+                failure {
+                    emailext(
+                        subject: "❌ Deployment Verification Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Deployment verification failed. Check build URL: ${env.BUILD_URL}",
+                        to: "${NOTIFY_EMAIL}"
+                    )
+                }
+            }
         }
     }
 }
