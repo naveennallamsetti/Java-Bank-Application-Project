@@ -44,7 +44,7 @@ spec:
     - host: a8493ae8dc58a48b49f2a44ec81ce233-661166032.us-east-1.elb.amazonaws.com
       http:
         paths:
-          - path: /
+          - path: /bank
             pathType: Prefix
             backend:
               service:
