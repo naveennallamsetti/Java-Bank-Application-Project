@@ -24,12 +24,12 @@ kind: Service
 metadata:
   name: java-bank-service
 spec:
-  type: LoadBalancer
+  type: ClusterIP   # corrected case
   selector:
     app: java-bank-app
   ports:
     - port: 80
-      targetPort: 8085  # updated to match container
+      targetPort: 8085  # matches containerPort
 
 ---
 apiVersion: networking.k8s.io/v1
@@ -39,7 +39,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: java-bank-app.local
+    - host: "java-bank-app.local"   # added quotes
       http:
         paths:
           - path: /bank
