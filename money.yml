@@ -16,7 +16,7 @@ spec:
         - name: java-bank-container
           image: naveennallamsetti/java-bank-application-project:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 8085   # changed port
 
 ---
 apiVersion: v1
@@ -29,7 +29,7 @@ spec:
     app: java-bank-app
   ports:
     - port: 80
-      targetPort: 8080
+      targetPort: 8085  # updated to match container
 
 ---
 apiVersion: networking.k8s.io/v1
@@ -37,9 +37,9 @@ kind: Ingress
 metadata:
   name: java-bank-ingress
 spec:
-  ingressClassName: nginx   # updated from deprecated annotation
+  ingressClassName: nginx
   rules:
-    - host: java-bank-app.local   # unique host to avoid conflicts
+    - host: java-bank-app.local
       http:
         paths:
           - path: /
