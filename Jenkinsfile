@@ -137,7 +137,6 @@ pipeline {
                 sh '''
                     docker stop ${CONTAINER_NAME} || true
                     docker rm ${CONTAINER_NAME} || true
-
                     docker run -d -p ${HOST_PORT}:${CONTAINER_PORT} \
                     --name ${CONTAINER_NAME} \
                     ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
@@ -161,35 +160,26 @@ pipeline {
             }
         }
 
-        // stage('Update K8s Image') {
-        //     steps {
-        //         dir("${WORK_DIR}") {
-        //             sh '''
-        //                 sed -i "s|image:.*|image: ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}|" money.yml
-        //             '''
-        //         }
-        //     }
         stage('Update K8s Image') {
-    steps {
-        sh """
-            kubectl set image deployment/java-bank-app \
-            java-bank-container=${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} \
-            --record
-        """
-    }
-}
+            steps {
+                sh """
+                    kubectl set image deployment/java-bank-app \
+                    java-bank-container=${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} \
+                    --record
+                """
+            }
             post {
                 success {
                     emailext(
-                        subject: "✅ K8s YAML Updated: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                        body: "Kubernetes deployment YAML updated successfully.",
+                        subject: "✅ K8s Deployment Updated: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Kubernetes deployment image updated successfully.",
                         to: "${NOTIFY_EMAIL}"
                     )
                 }
                 failure {
                     emailext(
-                        subject: "❌ K8s YAML Update Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                        body: "Failed to update Kubernetes YAML. Check build URL: ${env.BUILD_URL}",
+                        subject: "❌ K8s Deployment Update Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Failed to update Kubernetes deployment image. Check build URL: ${env.BUILD_URL}",
                         to: "${NOTIFY_EMAIL}"
                     )
                 }
@@ -226,9 +216,7 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 dir("${WORK_DIR}") {
-                    sh '''
-                        kubectl apply -f money.yml
-                    '''
+                    sh 'kubectl apply -f money.yml'
                 }
             }
             post {
